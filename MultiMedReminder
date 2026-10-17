@@ -1,0 +1,291 @@
+blueprint:
+  name: Multi-Medication Hold Day Reminder (Up to 3 Meds)
+  description: >-
+    Evaluates up to 3 medications on independent Give/Hold cycles when a cabinet
+    sensor opens. Announces which medications to hold via TTS, sends a high-priority
+    mobile push notification, and resets the daily prime toggle at midnight.
+  domain: automation
+  input:
+    # --- Core Hardware & Helpers ---
+    cabinet_sensor:
+      name: Medicine Cabinet Sensor
+      description: Sensor that triggers the announcement when opened (turns 'on').
+      selector:
+        entity:
+          domain: binary_sensor
+    occupancy_sensor:
+      name: Room Occupancy Sensor
+      description: Occupancy sensor that must be 'on' for the alert to trigger.
+      selector:
+        entity:
+          domain: binary_sensor
+    prime_boolean:
+      name: Daily Prime Input Boolean
+      description: Toggle helper that ensures the alert only fires once per day (auto-resets at midnight).
+      selector:
+        entity:
+          domain: input_boolean
+    tts_engine:
+      name: TTS Service / Action
+      description: The Text-to-Speech action to call (e.g., tts.google_translate_say).
+      default: tts.google_translate_say
+      selector:
+        text:
+    tts_player:
+      name: Smart Speaker / Display
+      description: Media player that will speak the voice reminder.
+      selector:
+        entity:
+          domain: media_player
+    notify_service:
+      name: Mobile App Notification Action
+      description: Exact mobile notification action name (e.g., notify.mobile_app_pixel_10).
+      default: notify.mobile_app_pixel_10
+      selector:
+        text:
+
+    # --- Medication 1 (Required) ---
+    med_1_name:
+      name: "Medication 1: Name"
+      description: Name of the first medication.
+      default: "Cyclosporine"
+      selector:
+        text:
+    med_1_start_date:
+      name: "Medication 1: Cycle Start Date (First Give Day)"
+      description: A date where the cycle starts on a 'Give' day (YYYY-MM-DD).
+      default: "2026-10-17"
+      selector:
+        date:
+    med_1_give_days:
+      name: "Medication 1: Days to GIVE"
+      description: Consecutive days the medication IS administered per cycle.
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+    med_1_hold_days:
+      name: "Medication 1: Days to HOLD"
+      description: Consecutive days the medication is HELD per cycle.
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+
+    # --- Medication 2 (Optional) ---
+    med_2_enable:
+      name: "Medication 2: Enable"
+      description: Turn on to track a second medication.
+      default: false
+      selector:
+        boolean:
+    med_2_name:
+      name: "Medication 2: Name"
+      default: ""
+      selector:
+        text:
+    med_2_start_date:
+      name: "Medication 2: Cycle Start Date (First Give Day)"
+      default: "2026-10-17"
+      selector:
+        date:
+    med_2_give_days:
+      name: "Medication 2: Days to GIVE"
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+    med_2_hold_days:
+      name: "Medication 2: Days to HOLD"
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+
+    # --- Medication 3 (Optional) ---
+    med_3_enable:
+      name: "Medication 3: Enable"
+      description: Turn on to track a third medication.
+      default: false
+      selector:
+        boolean:
+    med_3_name:
+      name: "Medication 3: Name"
+      default: ""
+      selector:
+        text:
+    med_3_start_date:
+      name: "Medication 3: Cycle Start Date (First Give Day)"
+      default: "2026-10-17"
+      selector:
+        date:
+    med_3_give_days:
+      name: "Medication 3: Days to GIVE"
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+    med_3_hold_days:
+      name: "Medication 3: Days to HOLD"
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: days
+
+mode: single
+
+variables:
+  prime_entity: !input prime_boolean
+  tts_action: !input tts_engine
+  speaker_entity: !input tts_player
+  mobile_notify: !input notify_service
+
+  m1_name: !input med_1_name
+  m1_start: !input med_1_start_date
+  m1_give: !input med_1_give_days
+  m1_hold: !input med_1_hold_days
+
+  m2_en: !input med_2_enable
+  m2_name: !input med_2_name
+  m2_start: !input med_2_start_date
+  m2_give: !input med_2_give_days
+  m2_hold: !input med_2_hold_days
+
+  m3_en: !input med_3_enable
+  m3_name: !input med_3_name
+  m3_start: !input med_3_start_date
+  m3_give: !input med_3_give_days
+  m3_hold: !input med_3_hold_days
+
+  # Calculate which medications are on a hold day today
+  hold_speech_list: >
+    {% set ns = namespace(items=[]) %}
+    {% set today = now().date() %}
+
+    {% if m1_name | trim != '' %}
+      {% set cycle1 = (m1_give | int) + (m1_hold | int) %}
+      {% set rem1 = (today - as_datetime(m1_start).date()).days % cycle1 %}
+      {% if rem1 >= (m1_give | int) %}
+        {% set ns.items = ns.items + [m1_name] %}
+      {% endif %}
+    {% endif %}
+
+    {% if m2_en and (m2_name | trim != '') %}
+      {% set cycle2 = (m2_give | int) + (m2_hold | int) %}
+      {% set rem2 = (today - as_datetime(m2_start).date()).days % cycle2 %}
+      {% if rem2 >= (m2_give | int) %}
+        {% set ns.items = ns.items + [m2_name] %}
+      {% endif %}
+    {% endif %}
+
+    {% if m3_en and (m3_name | trim != '') %}
+      {% set cycle3 = (m3_give | int) + (m3_hold | int) %}
+      {% set rem3 = (today - as_datetime(m3_start).date()).days % cycle3 %}
+      {% if rem3 >= (m3_give | int) %}
+        {% set ns.items = ns.items + [m3_name] %}
+      {% endif %}
+    {% endif %}
+
+    {{ ns.items }}
+
+  # Calculate detailed Hold Day X of Y text for push notification
+  hold_push_details: >
+    {% set ns = namespace(details=[]) %}
+    {% set today = now().date() %}
+
+    {% if m1_name | trim != '' %}
+      {% set cycle1 = (m1_give | int) + (m1_hold | int) %}
+      {% set rem1 = (today - as_datetime(m1_start).date()).days % cycle1 %}
+      {% if rem1 >= (m1_give | int) %}
+        {% set h_day = rem1 - (m1_give | int) + 1 %}
+        {% set ns.details = ns.details + [m1_name ~ ' (Hold Day ' ~ h_day ~ ' of ' ~ m1_hold ~ ')'] %}
+      {% endif %}
+    {% endif %}
+
+    {% if m2_en and (m2_name | trim != '') %}
+      {% set cycle2 = (m2_give | int) + (m2_hold | int) %}
+      {% set rem2 = (today - as_datetime(m2_start).date()).days % cycle2 %}
+      {% if rem2 >= (m2_give | int) %}
+        {% set h_day = rem2 - (m2_give | int) + 1 %}
+        {% set ns.details = ns.details + [m2_name ~ ' (Hold Day ' ~ h_day ~ ' of ' ~ m2_hold ~ ')'] %}
+      {% endif %}
+    {% endif %}
+
+    {% if m3_en and (m3_name | trim != '') %}
+      {% set cycle3 = (m3_give | int) + (m3_hold | int) %}
+      {% set rem3 = (today - as_datetime(m3_start).date()).days % cycle3 %}
+      {% if rem3 >= (m3_give | int) %}
+        {% set h_day = rem3 - (m3_give | int) + 1 %}
+        {% set ns.details = ns.details + [m3_name ~ ' (Hold Day ' ~ h_day ~ ' of ' ~ m3_hold ~ ')'] %}
+      {% endif %}
+    {% endif %}
+
+    {{ ns.details }}
+
+triggers:
+  - trigger: state
+    entity_id: !input cabinet_sensor
+    to: "on"
+    id: cabinet_opened
+  - trigger: time
+    at: "00:00:00"
+    id: midnight_reset
+
+conditions: []
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: midnight_reset
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input prime_boolean
+
+      - conditions:
+          - condition: trigger
+            id: cabinet_opened
+          - condition: state
+            entity_id: !input occupancy_sensor
+            state: "on"
+          - condition: state
+            entity_id: !input prime_boolean
+            state: "on"
+          - condition: template
+            value_template: "{{ hold_speech_list | count > 0 }}"
+        sequence:
+          - action: "{{ tts_action }}"
+            data:
+              entity_id: "{{ speaker_entity }}"
+              message: >
+                {% if hold_speech_list | count == 1 %}
+                  Attention! Do not give the {{ hold_speech_list[0] }} today. It is a hold day.
+                {% elif hold_speech_list | count == 2 %}
+                  Attention! Do not give the {{ hold_speech_list[0] }} and {{ hold_speech_list[1] }} today.
+                {% else %}
+                  Attention! Do not give the {{ hold_speech_list[0] }}, {{ hold_speech_list[1] }}, and {{ hold_speech_list[2] }} today.
+                {% endif %}
+          - action: "{{ mobile_notify }}"
+            data:
+              title: "🐾 Meds Alert: Hold Medication"
+              message: "Do not give today: {{ hold_push_details | join(', ') }}."
+              data:
+                ttl: 0
+                priority: high
+                tag: med_hold_reminder
+          - action: input_boolean.turn_off
+            target:
+              entity_id: !input prime_boolean
