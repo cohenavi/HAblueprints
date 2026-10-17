@@ -2,8 +2,8 @@ blueprint:
   name: Multi-Medication Hold Day Reminder (Up to 3 Meds)
   description: >-
     Evaluates up to 3 medications on independent Give/Hold cycles when a cabinet
-    sensor opens. Announces which medications to hold via TTS, sends a high-priority
-    mobile push notification, and resets the daily prime toggle at midnight.
+    sensor opens. Announces which medications to hold via TTS, optionally sends a
+    high-priority mobile push notification, and resets the daily prime toggle at midnight.
   domain: automation
   input:
     # --- Core Hardware & Helpers ---
@@ -37,10 +37,18 @@ blueprint:
       selector:
         entity:
           domain: media_player
+
+    # --- Optional Mobile Notification ---
+    notify_enable:
+      name: "Mobile Push Notification: Enable"
+      description: Turn on to also send a high-priority push notification to a phone.
+      default: true
+      selector:
+        boolean:
     notify_service:
-      name: Mobile App Notification Action
-      description: Exact mobile notification action name (e.g., notify.mobile_app_pixel_10).
-      default: notify.mobile_app_pixel_10
+      name: "Mobile Push Notification: Action Name"
+      description: Exact mobile notification action name (e.g., notify.mobile_app_pixel_10). Ignored if toggle above is off.
+      default: notify.mobile_app_pixel_11
       selector:
         text:
 
@@ -150,6 +158,7 @@ variables:
   prime_entity: !input prime_boolean
   tts_action: !input tts_engine
   speaker_entity: !input tts_player
+  mobile_notify_en: !input notify_enable
   mobile_notify: !input notify_service
 
   m1_name: !input med_1_name
@@ -278,14 +287,18 @@ actions:
                 {% else %}
                   Attention! Do not give the {{ hold_speech_list[0] }}, {{ hold_speech_list[1] }}, and {{ hold_speech_list[2] }} today.
                 {% endif %}
-          - action: "{{ mobile_notify }}"
-            data:
-              title: "🐾 Meds Alert: Hold Medication"
-              message: "Do not give today: {{ hold_push_details | join(', ') }}."
-              data:
-                ttl: 0
-                priority: high
-                tag: med_hold_reminder
+          - if:
+              - condition: template
+                value_template: "{{ mobile_notify_en and (mobile_notify | trim != '') }}"
+            then:
+              - action: "{{ mobile_notify }}"
+                data:
+                  title: "🐾 Meds Alert: Hold Medication"
+                  message: "Do not give today: {{ hold_push_details | join(', ') }}."
+                  data:
+                    ttl: 0
+                    priority: high
+                    tag: med_hold_reminder
           - action: input_boolean.turn_off
             target:
               entity_id: !input prime_boolean
