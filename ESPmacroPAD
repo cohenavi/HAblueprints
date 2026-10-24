@@ -1,0 +1,275 @@
+blueprint:
+  name: "ESP32 Capacitive Touch Macro Pad (6-Pad + Boot Button)"
+  description: >
+    Routes Single Tap, Double Tap, and Long Press events from an ESPHome
+    ESP32 Capacitive Touch Macro Pad listening to `esphome.touch_pad_action`.
+    Includes explicit GPIO pin mappings for all 6 safe non-strapping touch pins.
+  domain: automation
+  input:
+    # ---------------------------------------------------------
+    # PAD 1: GPIO 4
+    # ---------------------------------------------------------
+    pad_1_section:
+      name: "Touch Pad 1 — GPIO 4 (Touch0)"
+      icon: mdi:numeric-1-box-outline
+      description: "Actions triggered by touching physical pin GPIO 4 (typically bottom-right on 30/38-pin DevKits)."
+      collapsed: true
+      input:
+        pad_1_single:
+          name: "Pad 1 (GPIO 4) - Single Tap"
+          description: "Action to run on a single tap of GPIO 4."
+          default: []
+          selector:
+            action: {}
+        pad_1_double:
+          name: "Pad 1 (GPIO 4) - Double Tap"
+          description: "Action to run on a double tap of GPIO 4."
+          default: []
+          selector:
+            action: {}
+        pad_1_long:
+          name: "Pad 1 (GPIO 4) - Long Press"
+          description: "Action to run when holding GPIO 4 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+    # ---------------------------------------------------------
+    # PAD 2: GPIO 13
+    # ---------------------------------------------------------
+    pad_2_section:
+      name: "Touch Pad 2 — GPIO 13 (Touch4)"
+      icon: mdi:numeric-2-box-outline
+      description: "Actions triggered by touching physical pin GPIO 13 (bottom-left corner near GND/VIN)."
+      collapsed: true
+      input:
+        pad_2_single:
+          name: "Pad 2 (GPIO 13) - Single Tap"
+          description: "Action to run on a single tap of GPIO 13."
+          default: []
+          selector:
+            action: {}
+        pad_2_double:
+          name: "Pad 2 (GPIO 13) - Double Tap"
+          description: "Action to run on a double tap of GPIO 13."
+          default: []
+          selector:
+            action: {}
+        pad_2_long:
+          name: "Pad 2 (GPIO 13) - Long Press"
+          description: "Action to run when holding GPIO 13 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+    # ---------------------------------------------------------
+    # PAD 3: GPIO 14
+    # ---------------------------------------------------------
+    pad_3_section:
+      name: "Touch Pad 3 — GPIO 14 (Touch6)"
+      icon: mdi:numeric-3-box-outline
+      description: "Actions triggered by touching physical pin GPIO 14 (left side, adjacent to GPIO 12 and 27)."
+      collapsed: true
+      input:
+        pad_3_single:
+          name: "Pad 3 (GPIO 14) - Single Tap"
+          description: "Action to run on a single tap of GPIO 14."
+          default: []
+          selector:
+            action: {}
+        pad_3_double:
+          name: "Pad 3 (GPIO 14) - Double Tap"
+          description: "Action to run on a double tap of GPIO 14."
+          default: []
+          selector:
+            action: {}
+        pad_3_long:
+          name: "Pad 3 (GPIO 14) - Long Press"
+          description: "Action to run when holding GPIO 14 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+    # ---------------------------------------------------------
+    # PAD 4: GPIO 27
+    # ---------------------------------------------------------
+    pad_4_section:
+      name: "Touch Pad 4 — GPIO 27 (Touch7)"
+      icon: mdi:numeric-4-box-outline
+      description: "Actions triggered by touching physical pin GPIO 27 (left side, between GPIO 14 and 26)."
+      collapsed: true
+      input:
+        pad_4_single:
+          name: "Pad 4 (GPIO 27) - Single Tap"
+          description: "Action to run on a single tap of GPIO 27."
+          default: []
+          selector:
+            action: {}
+        pad_4_double:
+          name: "Pad 4 (GPIO 27) - Double Tap"
+          description: "Action to run on a double tap of GPIO 27."
+          default: []
+          selector:
+            action: {}
+        pad_4_long:
+          name: "Pad 4 (GPIO 27) - Long Press"
+          description: "Action to run when holding GPIO 27 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+    # ---------------------------------------------------------
+    # PAD 5: GPIO 32
+    # ---------------------------------------------------------
+    pad_5_section:
+      name: "Touch Pad 5 — GPIO 32 (Touch9)"
+      icon: mdi:numeric-5-box-outline
+      description: "Actions triggered by touching physical pin GPIO 32 (upper-left side, adjacent to GPIO 33)."
+      collapsed: true
+      input:
+        pad_5_single:
+          name: "Pad 5 (GPIO 32) - Single Tap"
+          description: "Action to run on a single tap of GPIO 32."
+          default: []
+          selector:
+            action: {}
+        pad_5_double:
+          name: "Pad 5 (GPIO 32) - Double Tap"
+          description: "Action to run on a double tap of GPIO 32."
+          default: []
+          selector:
+            action: {}
+        pad_5_long:
+          name: "Pad 5 (GPIO 32) - Long Press"
+          description: "Action to run when holding GPIO 32 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+    # ---------------------------------------------------------
+    # PAD 6: GPIO 33
+    # ---------------------------------------------------------
+    pad_6_section:
+      name: "Touch Pad 6 — GPIO 33 (Touch8)"
+      icon: mdi:numeric-6-box-outline
+      description: "Actions triggered by touching physical pin GPIO 33 (left side, between GPIO 32 and 25)."
+      collapsed: true
+      input:
+        pad_6_single:
+          name: "Pad 6 (GPIO 33) - Single Tap"
+          description: "Action to run on a single tap of GPIO 33."
+          default: []
+          selector:
+            action: {}
+        pad_6_double:
+          name: "Pad 6 (GPIO 33) - Double Tap"
+          description: "Action to run on a double tap of GPIO 33."
+          default: []
+          selector:
+            action: {}
+        pad_6_long:
+          name: "Pad 6 (GPIO 33) - Long Press"
+          description: "Action to run when holding GPIO 33 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+    # ---------------------------------------------------------
+    # BONUS: ONBOARD BOOT BUTTON (GPIO 0)
+    # ---------------------------------------------------------
+    boot_btn_section:
+      name: "Onboard BOOT Button — GPIO 0"
+      icon: mdi:gesture-tap-button
+      description: "Actions triggered by pressing the physical BOOT microswitch next to the USB port (GPIO 0)."
+      collapsed: true
+      input:
+        boot_single:
+          name: "BOOT Button (GPIO 0) - Single Tap"
+          description: "Action to run on a single press of GPIO 0."
+          default: []
+          selector:
+            action: {}
+        boot_double:
+          name: "BOOT Button (GPIO 0) - Double Tap"
+          description: "Action to run on a double press of GPIO 0."
+          default: []
+          selector:
+            action: {}
+        boot_long:
+          name: "BOOT Button (GPIO 0) - Long Press"
+          description: "Action to run when holding GPIO 0 for 800ms+."
+          default: []
+          selector:
+            action: {}
+
+mode: queued
+max: 10
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type: esphome.touch_pad_action
+
+conditions: []
+
+actions:
+  - variables:
+      pad: "{{ trigger.event.data.pad }}"
+      action: "{{ trigger.event.data.action }}"
+
+  - choose:
+      # --- PAD 1 (GPIO 4) ---
+      - conditions: "{{ pad == 'pad_1' and action == 'single_tap' }}"
+        sequence: !input pad_1_single
+      - conditions: "{{ pad == 'pad_1' and action == 'double_tap' }}"
+        sequence: !input pad_1_double
+      - conditions: "{{ pad == 'pad_1' and action == 'long_press' }}"
+        sequence: !input pad_1_long
+
+      # --- PAD 2 (GPIO 13) ---
+      - conditions: "{{ pad == 'pad_2' and action == 'single_tap' }}"
+        sequence: !input pad_2_single
+      - conditions: "{{ pad == 'pad_2' and action == 'double_tap' }}"
+        sequence: !input pad_2_double
+      - conditions: "{{ pad == 'pad_2' and action == 'long_press' }}"
+        sequence: !input pad_2_long
+
+      # --- PAD 3 (GPIO 14) ---
+      - conditions: "{{ pad == 'pad_3' and action == 'single_tap' }}"
+        sequence: !input pad_3_single
+      - conditions: "{{ pad == 'pad_3' and action == 'double_tap' }}"
+        sequence: !input pad_3_double
+      - conditions: "{{ pad == 'pad_3' and action == 'long_press' }}"
+        sequence: !input pad_3_long
+
+      # --- PAD 4 (GPIO 27) ---
+      - conditions: "{{ pad == 'pad_4' and action == 'single_tap' }}"
+        sequence: !input pad_4_single
+      - conditions: "{{ pad == 'pad_4' and action == 'double_tap' }}"
+        sequence: !input pad_4_double
+      - conditions: "{{ pad == 'pad_4' and action == 'long_press' }}"
+        sequence: !input pad_4_long
+
+      # --- PAD 5 (GPIO 32) ---
+      - conditions: "{{ pad == 'pad_5' and action == 'single_tap' }}"
+        sequence: !input pad_5_single
+      - conditions: "{{ pad == 'pad_5' and action == 'double_tap' }}"
+        sequence: !input pad_5_double
+      - conditions: "{{ pad == 'pad_5' and action == 'long_press' }}"
+        sequence: !input pad_5_long
+
+      # --- PAD 6 (GPIO 33) ---
+      - conditions: "{{ pad == 'pad_6' and action == 'single_tap' }}"
+        sequence: !input pad_6_single
+      - conditions: "{{ pad == 'pad_6' and action == 'double_tap' }}"
+        sequence: !input pad_6_double
+      - conditions: "{{ pad == 'pad_6' and action == 'long_press' }}"
+        sequence: !input pad_6_long
+
+      # --- BOOT BUTTON (GPIO 0) ---
+      - conditions: "{{ pad == 'boot_button' and action == 'single_tap' }}"
+        sequence: !input boot_single
+      - conditions: "{{ pad == 'boot_button' and action == 'double_tap' }}"
+        sequence: !input boot_double
+      - conditions: "{{ pad == 'boot_button' and action == 'long_press' }}"
+        sequence: !input boot_long
