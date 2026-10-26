@@ -1,32 +1,38 @@
 blueprint:
-  name: Location-Based To-Do List Reminder
+  name: Coordinate-Based To-Do List Reminder
   description: >
-    Checks a designated To-Do list when a person enters or leaves a Zone. 
-    If incomplete items exist, sends an actionable notification listing the tasks.
+    Triggers a To-Do list notification using raw GPS coordinates or an interactive 
+    map pin without needing to create a permanent Home Assistant Zone.
   domain: automation
   input:
     person_entity:
       name: Person
-      description: The person entity to track.
+      description: The person entity to track (must have latitude/longitude attributes).
       selector:
         entity:
           domain: person
-    target_zone:
-      name: Zone
-      description: The zone that triggers the reminder.
+    location_name:
+      name: Location Name
+      description: Friendly name for the notification title (e.g., "Hardware Store").
+      default: "Target Location"
       selector:
-        entity:
-          domain: zone
+        text:
+    target_coordinates:
+      name: Target Map Location & Radius
+      description: Drop a pin on the map or enter coordinates. Drag the circle edge to set the radius.
+      selector:
+        location:
+          radius: true
     zone_event:
       name: Trigger Event
-      description: Trigger when entering or leaving the zone.
+      description: Trigger when entering or leaving the coordinate radius.
       default: enter
       selector:
         select:
           options:
-            - label: Entering Zone
+            - label: Entering Area
               value: enter
-            - label: Leaving Zone
+            - label: Leaving Area
               value: leave
     todo_list:
       name: To-Do List
@@ -36,27 +42,35 @@ blueprint:
           domain: todo
     notify_service:
       name: Notification Service
-      description: >
-        The notification service to call (e.g., notify.mobile_app_pixel_10 or a ntfy service).
+      description: The notification service to call (e.g., notify.mobile_app_pixel_10).
       default: notify.notify
       selector:
         text:
 
+variables:
+  person: !input person_entity
+  loc: !input target_coordinates
+  event_type: !input zone_event
+  loc_name: !input location_name
+  todo_entity: !input todo_list
+  # distance() returns km by default; convert to meters and compare against selector radius (default 100m)
+  radius_m: "{{ loc.radius | default(100) | float }}"
+
 trigger:
-  - platform: zone
-    entity_id: !input person_entity
-    zone: !input target_zone
-    event: !input zone_event
+  - platform: template
+    value_template: >-
+      {% set dist_m = distance(person, loc.latitude, loc.longitude) * 1000 %}
+      {% if event_type == 'enter' %}
+        {{ dist_m <= radius_m }}
+      {% else %}
+        {{ dist_m > radius_m }}
+      {% endif %}
 
 condition:
   - condition: template
     value_template: "{{ states(todo_entity) | int(0) > 0 }}"
 
 action:
-  - variables:
-      todo_entity: !input todo_list
-      zone_entity: !input target_zone
-      zone_name: "{{ state_attr(zone_entity, 'friendly_name') }}"
   - action: todo.get_items
     target:
       entity_id: !input todo_list
@@ -65,13 +79,13 @@ action:
     response_variable: active_tasks
   - action: !input notify_service
     data:
-      title: "📍 {{ zone_name }} Reminders ({{ active_tasks[todo_entity]['items'] | count }})"
+      title: "📍 {{ loc_name }} Reminders ({{ active_tasks[todo_entity]['items'] | count }})"
       message: >-
         {% for item in active_tasks[todo_entity]['items'] -%}
         • {{ item.summary }}{% if not loop.last %}{{ '\n' }}{% endif %}
         {%- endfor %}
       data:
-        tag: "zone_reminder_{{ zone_entity | slugify }}"
+        tag: "coord_reminder_{{ loc_name | slugify }}"
         clickAction: "/todo?entity_id={{ todo_entity }}"
         url: "/todo?entity_id={{ todo_entity }}"
 
