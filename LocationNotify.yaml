@@ -2,7 +2,7 @@ blueprint:
   name: Coordinate-Based To-Do List Reminder
   description: >
     Triggers a To-Do list notification using raw GPS coordinates or an interactive 
-    map pin without needing to create a permanent Home Assistant Zone.
+    map pin.
   domain: automation
   input:
     person_entity:
