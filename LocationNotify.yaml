@@ -42,7 +42,7 @@ blueprint:
           domain: todo
     notify_service:
       name: Notification Service
-      description: The notification service to call (e.g., notify.mobile_app_pixel_10).
+      description: The notification service to call (e.g., notify.mobile_app_pixel_11).
       default: notify.notify
       selector:
         text:
