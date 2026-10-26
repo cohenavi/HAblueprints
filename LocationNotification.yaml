@@ -1,0 +1,78 @@
+blueprint:
+  name: Location-Based To-Do List Reminder
+  description: >
+    Checks a designated To-Do list when a person enters or leaves a Zone. 
+    If incomplete items exist, sends an actionable notification listing the tasks.
+  domain: automation
+  input:
+    person_entity:
+      name: Person
+      description: The person entity to track.
+      selector:
+        entity:
+          domain: person
+    target_zone:
+      name: Zone
+      description: The zone that triggers the reminder.
+      selector:
+        entity:
+          domain: zone
+    zone_event:
+      name: Trigger Event
+      description: Trigger when entering or leaving the zone.
+      default: enter
+      selector:
+        select:
+          options:
+            - label: Entering Zone
+              value: enter
+            - label: Leaving Zone
+              value: leave
+    todo_list:
+      name: To-Do List
+      description: The To-Do list entity containing tasks for this location.
+      selector:
+        entity:
+          domain: todo
+    notify_service:
+      name: Notification Service
+      description: >
+        The notification service to call (e.g., notify.mobile_app_pixel_10 or a ntfy service).
+      default: notify.notify
+      selector:
+        text:
+
+trigger:
+  - platform: zone
+    entity_id: !input person_entity
+    zone: !input target_zone
+    event: !input zone_event
+
+condition:
+  - condition: template
+    value_template: "{{ states(todo_entity) | int(0) > 0 }}"
+
+action:
+  - variables:
+      todo_entity: !input todo_list
+      zone_entity: !input target_zone
+      zone_name: "{{ state_attr(zone_entity, 'friendly_name') }}"
+  - action: todo.get_items
+    target:
+      entity_id: !input todo_list
+    data:
+      status: needs_action
+    response_variable: active_tasks
+  - action: !input notify_service
+    data:
+      title: "📍 {{ zone_name }} Reminders ({{ active_tasks[todo_entity]['items'] | count }})"
+      message: >-
+        {% for item in active_tasks[todo_entity]['items'] -%}
+        • {{ item.summary }}{% if not loop.last %}{{ '\n' }}{% endif %}
+        {%- endfor %}
+      data:
+        tag: "zone_reminder_{{ zone_entity | slugify }}"
+        clickAction: "/todo?entity_id={{ todo_entity }}"
+        url: "/todo?entity_id={{ todo_entity }}"
+
+mode: single
