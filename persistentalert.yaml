@@ -55,7 +55,7 @@ blueprint:
     notification_icon:
       name: Notification Icon
       description: Material Design Icon displayed in the status bar chip and card.
-      default: "mdi:garage-open-variant"
+      default: "mdi:shield-alert"
       selector:
         icon:
     notification_color:
