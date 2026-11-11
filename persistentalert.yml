@@ -1,0 +1,124 @@
+blueprint:
+  name: Persistent Open Doors & Windows Notification
+  description: >
+    Maintains a persistent Android notification whenever any selected door,
+    window, or cover entity is open, dynamically updating the list of open
+    sensors and automatically dismissing the notification when all are closed.
+  domain: automation
+  input:
+    monitored_entities:
+      name: Doors, Windows & Covers
+      description: Select all door/window binary sensors or garage covers to monitor.
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: binary_sensor
+              device_class:
+                - door
+                - garage_door
+                - window
+                - opening
+            - domain: cover
+              device_class:
+                - garage
+                - door
+                - gate
+                - window
+    notify_device:
+      name: Mobile App Device
+      description: Select the Android phone (e.g., Pixel) to receive the persistent notification.
+      selector:
+        device:
+          integration: mobile_app
+    notification_channel:
+      name: Notification Channel
+      description: Android notification channel name.
+      default: "Security Alerts"
+      selector:
+        text:
+    notification_tag:
+      name: Notification Tag
+      description: Unique tag used to update and clear this specific notification.
+      default: "open_entry_persistent_alert"
+      selector:
+        text:
+    notification_icon:
+      name: Notification Icon
+      description: Material Design Icon displayed in the Android status bar.
+      default: "mdi:garage-open-variant"
+      selector:
+        icon:
+    notification_color:
+      name: Notification Color (Hex)
+      description: Accent color for the Android notification.
+      default: "#FF5252"
+      selector:
+        text:
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input monitored_entities
+    from:
+      - "off"
+      - "on"
+      - "closed"
+      - "open"
+    to:
+      - "on"
+      - "off"
+      - "open"
+      - "closed"
+
+variables:
+  entities_list: !input monitored_entities
+  open_sensors: >
+    {{ expand(entities_list)
+       | selectattr('state', 'in', ['on', 'open'])
+       | map(attribute='name')
+       | list }}
+  open_count: "{{ open_sensors | count }}"
+  tag_id: !input notification_tag
+  channel_name: !input notification_channel
+  icon_name: !input notification_icon
+  accent_color: !input notification_color
+
+actions:
+  - choose:
+      # Branch 1: One or more monitored entities are open -> Create/Update Persistent Notification
+      - conditions:
+          - condition: template
+            value_template: "{{ open_count > 0 }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            title: >
+              🚪 {{ open_count }} {{ 'Entry' if open_count == 1 else 'Entries' }} Open
+            message: >
+              Currently open: {{ open_sensors | join(', ') }}
+            data:
+              tag: "{{ tag_id }}"
+              persistent: true
+              sticky: true
+              channel: "{{ channel_name }}"
+              importance: high
+              ttl: 0
+              priority: high
+              notification_icon: "{{ icon_name }}"
+              color: "{{ accent_color }}"
+
+      # Branch 2: All monitored entities are closed -> Dismiss Persistent Notification
+      - conditions:
+          - condition: template
+            value_template: "{{ open_count == 0 }}"
+        sequence:
+          - domain: mobile_app
+            type: notify
+            device_id: !input notify_device
+            message: "clear_notification"
+            data:
+              tag: "{{ tag_id }}"
