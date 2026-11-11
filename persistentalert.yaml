@@ -1,9 +1,9 @@
 blueprint:
-  name: Persistent Open Doors & Windows Notification
+  name: Live Update - Open Doors & Windows Notification
   description: >
-    Maintains a persistent Android notification whenever any selected door,
-    window, or cover entity is open, dynamically updating the list of open
-    sensors and automatically dismissing the notification when all are closed.
+    Pins an Android 16+ Live Update notification (status bar chip, Always-On
+    Display, and top of notification shade) whenever any selected door, window,
+    or cover entity is open, updating in-place and clearing when all are closed.
   domain: automation
   input:
     monitored_entities:
@@ -27,10 +27,19 @@ blueprint:
                 - window
     notify_device:
       name: Mobile App Device
-      description: Select the Android phone (e.g., Pixel) to receive the persistent notification.
+      description: Select the Android phone (e.g., Pixel) to receive the Live Update.
       selector:
         device:
           integration: mobile_app
+    show_timer_in_chip:
+      name: Show Elapsed Timer in Status Bar Chip
+      description: >
+        If enabled, the status bar chip displays a live-counting timer since the
+        oldest currently open door/window was opened. If disabled, it shows the
+        short text label (e.g., "1 Open").
+      default: false
+      selector:
+        boolean:
     notification_channel:
       name: Notification Channel
       description: Android notification channel name.
@@ -39,19 +48,19 @@ blueprint:
         text:
     notification_tag:
       name: Notification Tag
-      description: Unique tag used to update and clear this specific notification.
-      default: "open_entry_persistent_alert"
+      description: Unique identifier used to update and dismiss the Live Update.
+      default: "open_entry_live_alert"
       selector:
         text:
     notification_icon:
       name: Notification Icon
-      description: Material Design Icon displayed in the Android status bar.
+      description: Material Design Icon displayed in the status bar chip and card.
       default: "mdi:garage-open-variant"
       selector:
         icon:
     notification_color:
       name: Notification Color (Hex)
-      description: Accent color for the Android notification.
+      description: Accent color for the Live Update card and chip.
       default: "#FF5252"
       selector:
         text:
@@ -75,12 +84,21 @@ triggers:
 
 variables:
   entities_list: !input monitored_entities
-  open_sensors: >
+  open_objs: >
     {{ expand(entities_list)
        | selectattr('state', 'in', ['on', 'open'])
-       | map(attribute='name')
        | list }}
+  open_sensors: >
+    {{ open_objs | map(attribute='name') | list }}
   open_count: "{{ open_sensors | count }}"
+  # Timestamp (in ms) of the earliest opened sensor currently still open
+  oldest_open_ms: >
+    {% if open_objs | count > 0 %}
+      {{ (open_objs | map(attribute='last_changed') | min).timestamp() | multiply(1000) | int }}
+    {% else %}
+      0
+    {% endif %}
+  use_timer: !input show_timer_in_chip
   tag_id: !input notification_tag
   channel_name: !input notification_channel
   icon_name: !input notification_icon
@@ -88,7 +106,7 @@ variables:
 
 actions:
   - choose:
-      # Branch 1: One or more monitored entities are open -> Create/Update Persistent Notification
+      # Branch 1: One or more monitored entities are open -> Start or Update Live Activity
       - conditions:
           - condition: template
             value_template: "{{ open_count > 0 }}"
@@ -102,8 +120,14 @@ actions:
               Currently open: {{ open_sensors | join(', ') }}
             data:
               tag: "{{ tag_id }}"
-              persistent: true
+              live_update: true
+              critical_text: "{{ open_count }} Open"
+              chronometer: "{{ use_timer }}"
+              when: "{{ oldest_open_ms if use_timer else 0 }}"
+              when_relative: false
+              alert_once: true
               sticky: true
+              persistent: true
               channel: "{{ channel_name }}"
               importance: high
               ttl: 0
@@ -111,7 +135,7 @@ actions:
               notification_icon: "{{ icon_name }}"
               color: "{{ accent_color }}"
 
-      # Branch 2: All monitored entities are closed -> Dismiss Persistent Notification
+      # Branch 2: All monitored entities are closed -> End Live Activity
       - conditions:
           - condition: template
             value_template: "{{ open_count == 0 }}"
